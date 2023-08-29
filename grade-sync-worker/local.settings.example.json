@@ -1,0 +1,11 @@
+﻿{
+    "IsEncrypted": false,
+    "Values": {
+      "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+      "StorageConnectionString": "<your-azure-storage-connection-string>",
+      "ClientId": "<your-ad-client-id>",
+      "ClientSecret": "<your-ad-client-secret>",
+      "EncryptionKey": "<base64-encoded-32-byte-key>",
+      "VendorAuthHeader": "<x-vendor-authorization-header-key>"
+    }
+}

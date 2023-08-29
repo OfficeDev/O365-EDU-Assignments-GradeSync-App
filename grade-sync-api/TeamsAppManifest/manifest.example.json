@@ -1,0 +1,53 @@
+﻿{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.12/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.12",
+  "id": "<create-a-guid>",
+  "version": "1.0.0",
+  "packageName": "com.custom.tab",
+  "developer": {
+    "name": "YourDistrictName",
+    "websiteUrl": "https://<baseUrl>.ngrok.app",
+    "privacyUrl": "https://<baseUrl>.ngrok.app/privacy",
+    "termsOfUseUrl": "https://<baseUrl>.ngrok.app/tou",
+    "mpnId": ""
+  },
+  "name": {
+    "short": "YourAppName",
+    "full": "personalTab"
+  },
+  "description": {
+    "short": "short description here",
+    "full": "full description here"
+  },
+  "icons": {
+    "outline": "outline.png",
+    "color": "color.png"
+  },
+  "accentColor": "#D85028",
+  "configurableTabs": [],
+  "staticTabs": [
+    {
+      "entityId": "index",
+      "name": "Grade Sync",
+      "contentUrl": "https://<baseUrl>.ngrok.app",
+      "websiteUrl": "https://<baseUrl>.ngrok.app",
+      "scopes": [
+        "team"
+      ]
+    }
+  ],
+  "bots": [],
+  "connectors": [],
+  "composeExtensions": [],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "*.ngrok.app"
+  ],
+  "webApplicationInfo": {
+    "id": "<Application (client) ID>",
+    "resource": "<Application ID URI>"
+  }
+}

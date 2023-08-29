@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appservice_api_name": {
+      "value": "default-as-gradesyncapi-prod-useast2"
+    },
+    "appservice_worker_name": {
+      "value": "default-as-gradesyncworker-prod-useast2"
+    },
+    "serverfarm_api_name": {
+      "value": "default-asp-gradesyncapi-prod-useast2"
+    },
+    "serverfarm_worker_name": {
+      "value": "default-asp-gradesyncworker-prod-useast2"
+    },
+    "ai_components_name": {
+      "value": "default-ai-gradesync-prod-useast2"
+    },
+    "storageAccount_name": {
+      "value": "defaultgradesyncstorage"
+    },
+    "virtualNetwork_name": {
+      "value": "default-vn-gradesync-prod-useast2"
+    },
+    "actionGroup_name": {
+      "value": "default-aisd-gradesync-prod-useast2"
+    },
+    "smartdetectionalertrules_failure_anomalies_name": {
+      "value": "default-faai-gradesync-prod-useast2"
+    },
+    "subnet_api_name": {
+      "value": "default-sn-api-name"
+    },
+    "subnet_worker_name": {
+      "value": "default-sn-worker-name"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+﻿{
+  "profiles": {
+    "grade_sync_worker": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7016",
+      "launchBrowser": false
+    }
+  }
+}
