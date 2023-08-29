@@ -88,7 +88,7 @@ Ensure you have Node and Npm installed locally. You may need to add a symlink fo
 1. `ln -s "$(which npm)" /usr/local/bin/npm`
 
 To run the **grade-sync-api** project, first you need to populate the `secrets.json` file with environment variables. This is a native Visual Studio file automatically excluded from version control.
-Access this file by right cicking the the **ms-fulton-co** project and select **Manage User Secrets** which will open `secrets.json`. Populate it with the necessary environment variables shown in
+Access this file by right cicking the the **grade-sync-api** project and select **Manage User Secrets** which will open `secrets.json`. Populate it with the necessary environment variables shown in
 the example `secrets.example.json`.
 
 The **grade-sync-worker** Azure Function project uses the same environment variables, and for running this locally you need to create a file `local.settings.json` under **grade-sync-worker**,
