@@ -67,7 +67,7 @@ namespace grade_sync_worker
                 }
                 if (gradeSyncJobEntity.ClassExternalId is null || gradeSyncJobEntity.ClassExternalId == "")
                 {
-                    throw new InvalidOperationException("GradeSyncJobEntity does not exist.");
+                    throw new InvalidOperationException("Teams EDU class does not have an external/SIS ID set. Contact your administrator or run Microsoft SDS to sync your classes.");
                 }
 
                 var connectionEntity = await _storageService.GetOneRosterConnectionEntity(gradeSyncMessage!.TenantId, gradeSyncJobEntity.OneRosterConnectionId);
