@@ -1,10 +1,5 @@
-﻿using System;
-using Azure.Data.Tables;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System;
-using Moq;
-using Xunit;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using GradeSyncApi.Helpers;
 using System.Security.Cryptography;
 

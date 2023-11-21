@@ -1,4 +1,6 @@
-﻿import React, {
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+import React, {
     useContext,
     useEffect,
     useReducer,

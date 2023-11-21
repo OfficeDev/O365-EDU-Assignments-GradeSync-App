@@ -1,10 +1,9 @@
-﻿using GradeSyncApi.Services.Storage;
-using Azure.Data.Tables;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+using GradeSyncApi.Services.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
 using Moq;
-using Xunit;
 
 namespace GradeSyncTest;
 

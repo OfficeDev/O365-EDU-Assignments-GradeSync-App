@@ -1,5 +1,5 @@
-﻿using System;
-
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 namespace GradeSyncApi.Services.Graph
 {
     public interface IDirectoryRoleService

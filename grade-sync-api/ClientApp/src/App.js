@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 import React, { useEffect, createContext, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import Home from "./components/Home";

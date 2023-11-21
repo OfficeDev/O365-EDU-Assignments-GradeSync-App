@@ -1,8 +1,6 @@
-﻿using System;
-using System.ComponentModel;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using System.Text;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.IdentityModel.Tokens.Jwt;
 using Newtonsoft.Json;

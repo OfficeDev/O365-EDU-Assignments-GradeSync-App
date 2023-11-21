@@ -1,7 +1,5 @@
-﻿using System;
-using System;
-using Moq;
-using Xunit;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using GradeSyncApi.Services.OneRoster;
 using GradeSyncApi.Services.Storage;
 using Microsoft.Extensions.Configuration;

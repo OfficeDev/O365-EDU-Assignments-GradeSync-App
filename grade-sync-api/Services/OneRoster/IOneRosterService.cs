@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using GradeSyncApi.Services.Storage;
 
 namespace GradeSyncApi.Services.OneRoster

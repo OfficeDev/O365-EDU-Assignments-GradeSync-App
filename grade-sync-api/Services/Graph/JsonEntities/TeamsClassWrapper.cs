@@ -1,5 +1,5 @@
-﻿using System;
-using GradeSyncApi.Services.Storage;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using Newtonsoft.Json;
 
 namespace GradeSyncApi.Services.Graph.JsonEntities

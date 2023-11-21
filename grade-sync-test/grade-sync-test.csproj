@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>ms_fulton_co_test</RootNamespace>
+    <RootNamespace>grade-sync-test</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
@@ -25,7 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ms-fulton-co\ms-fulton-co.csproj" />
     <ProjectReference Include="..\grade-sync-api\grade-sync-api.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using GradeSyncApi.Services.OneRoster;
 
 namespace GradeSyncApi.Services.Graph.JsonEntities

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using System.Net.Http.Headers;
 using System.Text;
-using GradeSyncApi.Services.Graph.JsonEntities;
 using Newtonsoft.Json;
 
 namespace GradeSyncApi.Services.OneRoster

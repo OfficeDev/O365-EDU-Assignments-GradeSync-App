@@ -1,5 +1,6 @@
-﻿using Azure.Data.Tables;
-using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+using Azure.Data.Tables;
 using Microsoft.Extensions.Configuration;
 using GradeSyncApi.Services.Storage;
 using GradeSyncApi.Services.OneRoster;

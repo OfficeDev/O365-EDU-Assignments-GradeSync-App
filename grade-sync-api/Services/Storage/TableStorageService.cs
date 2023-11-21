@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using Azure.Data.Tables;
 using GradeSyncApi.Helpers;
 

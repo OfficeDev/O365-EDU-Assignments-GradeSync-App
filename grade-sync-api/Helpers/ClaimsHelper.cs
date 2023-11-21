@@ -1,6 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using System.Security.Claims;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
+
 
 namespace GradeSyncApi.Helpers
 {

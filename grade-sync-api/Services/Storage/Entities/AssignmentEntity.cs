@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using System.Runtime.Serialization;
 using GradeSyncApi.Services.OneRoster;
 using Newtonsoft.Json;

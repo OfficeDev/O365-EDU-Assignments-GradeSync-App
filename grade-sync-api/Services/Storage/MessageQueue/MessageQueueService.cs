@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 using Azure.Storage.Queues;
 using Newtonsoft.Json;
 
