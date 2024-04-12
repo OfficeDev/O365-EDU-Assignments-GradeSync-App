@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
 using GradeSyncApi.Services.Storage;
 
 namespace GradeSyncApi.Services.OneRoster
@@ -8,7 +9,7 @@ namespace GradeSyncApi.Services.OneRoster
     {
         Task InitApiConnection(OneRosterConnectionEntity entity);
         Task GetCurrentGradingPeriod();
-        Task<LineItem?> CreateLineItem(string sourcedId, AssignmentEntity assignmentEntity, string classExternalId, string oneRosterConnectionId);
+        Task<LineItem?> CreateLineItem(string sourcedId, AssignmentEntity assignmentEntity, string classExternalId, string oneRosterConnectionId, List<Category>? allCategories, OneRosterConnectionEntity connectionEntity);
         Task<bool> OneRosterResourceExists(string sourcedId, OneRosterResourceType resourceType);
         Task<Result?> CreateLineItemResult(SubmissionEntity submission, string studentSisId, string assignmentId, string? subClassExternalId = null);
         Task<List<Category>> GetActiveCategories();
@@ -20,4 +21,3 @@ namespace GradeSyncApi.Services.OneRoster
         Task<List<OneRosterUser>> GetStudentUsersByClass(string classSourcedId);
     }
 }
-

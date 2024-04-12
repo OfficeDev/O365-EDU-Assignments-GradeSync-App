@@ -1,7 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
+using System.Collections.Concurrent;
 using Azure.Data.Tables;
 using GradeSyncApi.Helpers;
+using GradeSyncApi.Services.OneRoster;
 
 namespace GradeSyncApi.Services.Storage
 {
@@ -11,7 +14,7 @@ namespace GradeSyncApi.Services.Storage
         private readonly ILogger<TableStorageService> _logger;
         private Dictionary<string, TableClient> _tableClients;
 
-        public TableStorageService(IConfiguration configuration, ILogger<TableStorageService> logger)
+        public TableStorageService(IConfiguration configuration, ILogger<TableStorageService> logger, IOneRosterService oneRosterService)
         {
             _configuration = configuration;
             _logger = logger;
@@ -91,7 +94,8 @@ namespace GradeSyncApi.Services.Storage
             GradeSyncStatus status,
             JobPayloadWrapper payloadWrapper,
             string jobId,
-            string? oneRosterConnectionId
+            string? oneRosterConnectionId,
+            List<Category>? allCategories
             )
         {
             var idSet = new HashSet<string>(payloadWrapper.IdList);
@@ -111,7 +115,8 @@ namespace GradeSyncApi.Services.Storage
                         {
                             if (payloadWrapper.CategoryMap.TryGetValue(assignment.RowKey!, out string catId))
                             {
-                                assignment.AddCategoryMapping(oneRosterConnectionId, catId);
+                                var category = allCategories?.Find(c => c.Id == catId);
+                                assignment.AddCategoryMapping(oneRosterConnectionId, catId, category?.Title);
                             }
                         }
 
@@ -197,7 +202,6 @@ namespace GradeSyncApi.Services.Storage
 
         public async Task<OneRosterConnectionEntity?> GetOneRosterConnectionEntity(string tid, string connectionId)
         {
-            // This method should only be used by the grade-sync-worker project since it decrypts the actual values
             var encryptionKey = _configuration["EncryptionKey"];
 
             try
@@ -236,7 +240,7 @@ namespace GradeSyncApi.Services.Storage
                         if (userSettings.DefaultOneRosterConnectionId == connection.RowKey) isDefault = true;
                     }
 
-                    var dto = new OneRosterConnectionDto(connection, isAdmin, isDefault);
+                    var dto = new OneRosterConnectionDto(connection, isAdmin, isDefault, null);
                     dtoList.Add(dto);
                 }
                 return dtoList;
