@@ -115,14 +115,25 @@ const Home = (props) => {
                 // check for categories on assignment
                 if (includesCategories) {
                     if (assignment.stringifiedCategoryDict) {
-                        // parsed = {connectionId: {catId: string, lineItemSynced: bool}}
+                        // parsed = {connectionId: {catId: string, catTitle: string, lineItemSynced: bool}}
                         const parsed = JSON.parse(assignment.stringifiedCategoryDict);
 
                         if (parsed.hasOwnProperty(defaultConnectionId)) {
                             // if this assignment has been synced to OneRoster, we no longer allow to change the category
                             // since we do not overwrite lineItems
                             assignment.canSetCategory = !parsed[defaultConnectionId]["lineItemSynced"];
-                            stateCopy.assignmentCategoryMap[assignment.assignmentId] = parsed[defaultConnectionId]["catId"];
+
+                            // since we return a distinct list of categories by title, find the id for the matching title
+                            const storedCatId = parsed[defaultConnectionId]["catId"];
+                            let catIdForTitle = null;
+                            for (const category of stateCopy.oneRosterAssignmentCategories) {
+                                if (category.title === parsed[defaultConnectionId]["catTitle"]) {
+                                    catIdForTitle = category["catId"];
+                                    break;
+                                }
+                            }
+
+                            stateCopy.assignmentCategoryMap[assignment.assignmentId] = catIdForTitle ? catIdForTitle : storedCatId;
                         } else {
                             assignment.canSetCategory = true;
                             if (assignment.graphGradingCategoryName) {
@@ -504,7 +515,6 @@ const Home = (props) => {
         if (assignment.canSetCategory) {
             return (
                 <select className="form-select" value={catId} onChange={e => dispatch({ type: "changeCategory", assignmentId: assignment.assignmentId, catId: e.target.value })}>
-                    <option value="none">None</option>
                     {
                         dataState.oneRosterAssignmentCategories.map((category) => {
                             return (
@@ -517,7 +527,6 @@ const Home = (props) => {
         } else {
             return (
                 <select className="form-select" value={catId} disabled>
-                    <option value="none">None</option>
                     {
                         dataState.oneRosterAssignmentCategories.map((category) => {
                             return (

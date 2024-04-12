@@ -1,12 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication;
-
+using Microsoft.Identity.Web;
 
 using GradeSyncApi.Helpers;
 using GradeSyncApi.Services.Graph;
+using GradeSyncApi.Services.Graph.JsonEntities;
 using GradeSyncApi.Services.Storage;
 using GradeSyncApi.Services.OneRoster;
 
@@ -65,7 +69,12 @@ namespace GradeSyncApi.Controllers
             var bearerToken = await HttpContext!.GetTokenAsync("access_token");
             var claims = ClaimsHelper.ClaimsToDict(HttpContext!.User.Claims);
             await _graphService.ExchangeGraphToken(bearerToken!, claims["tid"]);
-            
+
+            var connection = await _storageService.GetOneRosterConnectionEntity(claims["tid"], connectionId);
+            if (connection is null) return BadRequest();
+            await _oneRosterService.InitApiConnection(connection);
+            var categories = await _oneRosterService.GetActiveCategories();
+
             var authorized = await _graphService.CanAccessClass(classId);
             if (authorized)
             {
@@ -83,7 +92,14 @@ namespace GradeSyncApi.Controllers
                 jobEntity.ClassExternalId = teamsClass!.ExternalId;
                 await _storageService.UpsertGradeSyncJobEntityAsync(jobEntity);
 
-                await _storageService.BatchUpdateAssignmentsForJobAsync(classId, GradeSyncStatus.InProgress, wrapper, jobEntity.RowKey, connectionId);
+                await _storageService.BatchUpdateAssignmentsForJobAsync(
+                    classId, 
+                    GradeSyncStatus.InProgress, 
+                    wrapper, 
+                    jobEntity.RowKey, 
+                    connectionId, 
+                    categories
+                    );
                 await _messageQueueService.SendMessageGradeSyncQueue(classId, jobEntity.RowKey, claims["tid"]);
 
                 return Ok(jobEntity.RowKey);
@@ -114,7 +130,8 @@ namespace GradeSyncApi.Controllers
                     GradeSyncStatus.Cancelled,
                     new JobPayloadWrapper(job.AssignmentIdList),
                     job.RowKey!,
-                    null!
+                    null!, 
+                    null
                 );
 
                 return Ok();
@@ -129,6 +146,22 @@ namespace GradeSyncApi.Controllers
             var claims = ClaimsHelper.ClaimsToDict(HttpContext!.User.Claims);
             var connections = await _storageService.GetOneRosterConnectionDtos(claims["tid"], claims["sub"], isAdmin);
             return Ok(connections);
+        }
+
+        [HttpGet]
+        [Route("api/get-connection-details/{connectionId}")]
+        public async Task<IActionResult> GetOneRosterConnections(string connectionId)
+        {
+            var claims = ClaimsHelper.ClaimsToDict(HttpContext!.User.Claims);
+            var connection = await _storageService.GetOneRosterConnectionEntity(claims["tid"], connectionId);
+            if (connection is null) return BadRequest();
+            var dto = new ConnectionDetailsDto
+            {
+                OneRosterBaseUrl = connection.OneRosterBaseUrl,
+                OAuth2TokenUrl = connection.OAuth2TokenUrl,
+                ClientId = connection.ClientId,
+            };
+            return Ok(dto);
         }
 
         [HttpGet]
@@ -224,7 +257,7 @@ namespace GradeSyncApi.Controllers
                 return Ok(connectionId);
             }
 
-            // at this point we just return bad request because they don't have a default connection, and there is more than one available on the tenant so
+            // at this point we just retrun bad request because they don't have a default connection, and there is more than one available on the tenant so
             // we can't assume and set it for them
             return BadRequest();
         }
@@ -241,8 +274,46 @@ namespace GradeSyncApi.Controllers
             {
                 await _oneRosterService.InitApiConnection(connection);
                 var categories = await _oneRosterService.GetActiveCategories();
-                return Ok(categories);
+
+                // return only unique categories by name
+                var distinctCategories = categories
+                    .GroupBy(x => x.Title)
+                    .Select(c => c.First())
+                    .ToList();
+
+                if (connection.AllowNoneLineItemCategory)
+                {
+                    distinctCategories.Insert(0, new Category { Id = "none", Title = "None" });
+                }
+
+                return Ok(distinctCategories);
             } catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpGet]
+        [Route("api/get-all-categories/{connectionId}")]
+        public async Task<IActionResult> GetAllLineItemCategoriesByConnectionId(string connectionId)
+        {
+            var claims = ClaimsHelper.ClaimsToDict(HttpContext!.User.Claims);
+            var connection = await _storageService.GetOneRosterConnectionEntity(claims["tid"], connectionId);
+            if (connection is null) return BadRequest();
+
+            try
+            {
+                await _oneRosterService.InitApiConnection(connection);
+                var categories = await _oneRosterService.GetActiveCategories();
+
+                var distinctCategories = categories
+                    .GroupBy(x => x.Id)
+                    .Select(c => c.First())
+                    .ToList();
+                distinctCategories.Insert(0, new Category { Id = "none", Title = "None" });
+                return Ok(distinctCategories);
+            }
+            catch (Exception e)
             {
                 return BadRequest(e.Message);
             }
@@ -284,6 +355,8 @@ namespace GradeSyncApi.Controllers
                 storedConnection.ClientId = connectionEntity.ClientId;
                 storedConnection.ClientSecret = connectionEntity.ClientSecret;
                 storedConnection.IsGroupEnabled = connectionEntity.IsGroupEnabled;
+                storedConnection.AllowNoneLineItemCategory = connectionEntity.AllowNoneLineItemCategory;
+                storedConnection.DefaultLineItemCategory = connectionEntity.DefaultLineItemCategory;
                 await _storageService.UpsertOneRosterConnectionEntityAsync(storedConnection);
             }
             else

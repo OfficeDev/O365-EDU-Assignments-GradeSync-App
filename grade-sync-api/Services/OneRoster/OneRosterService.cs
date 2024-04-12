@@ -1,6 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
+using System.ComponentModel;
 using System.Text;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.IdentityModel.Tokens.Jwt;
 using Newtonsoft.Json;
@@ -34,7 +38,17 @@ namespace GradeSyncApi.Services.OneRoster
 
             try
             {
-                var httpClient = new HttpClient();
+                if (_httpClient is null)
+                {
+                    _httpClient = new HttpClient();
+
+                    var vendorAuthKey = _configuration.GetValue<string>("VendorAuthHeader");
+                    if (vendorAuthKey is not null && vendorAuthKey != "")
+                    {
+                        _httpClient.DefaultRequestHeaders.Add("x-vendor-authorization", vendorAuthKey);
+                    }
+                    _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+                }
 
                 var values = new List<KeyValuePair<string, string>>
                 {
@@ -49,7 +63,7 @@ namespace GradeSyncApi.Services.OneRoster
                 req.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64AuthString);
                 req.Content = content;
 
-                var res = await httpClient.SendAsync(req);
+                var res = await _httpClient.SendAsync(req);
                 res.EnsureSuccessStatusCode();
 
                 var resBody = await res.Content.ReadAsStringAsync();
@@ -57,21 +71,9 @@ namespace GradeSyncApi.Services.OneRoster
 
                 _accessToken = tokenWrapper!.AccessToken;
                 SetExpTime(_accessToken);
-                
-                if (_httpClient is null)
-                {
-                    _httpClient = new HttpClient();
-
-                    var vendorAuthKey = _configuration.GetValue<string>("VendorAuthHeader");
-                    if (vendorAuthKey is not null && vendorAuthKey != "")
-                    {
-                        _httpClient.DefaultRequestHeaders.Add("x-vendor-authorization", vendorAuthKey);
-                    }
-                    _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-                }
-            } catch (Exception)
+            } catch (Exception e)
             {
-                throw new ApplicationException("Could not validate OneRoster API credentials");
+                throw new ApplicationException($"Could not validate OneRoster API credentials: {e.Message}");
             }
         }
 
@@ -105,7 +107,13 @@ namespace GradeSyncApi.Services.OneRoster
             return _accessToken!;
         }
 
-        public async Task<LineItem?> CreateLineItem(string sourcedId, AssignmentEntity assignmentEntity, string classExternalId, string oneRosterConnectionId)
+        public async Task<LineItem?> CreateLineItem(
+            string sourcedId, 
+            AssignmentEntity assignmentEntity, 
+            string classExternalId, 
+            string oneRosterConnectionId, 
+            List<Category>? allCategories,
+            OneRosterConnectionEntity connectionEntity)
         {
             if (assignmentEntity.MaxPoints is null) throw new ApplicationException("Can't create line item assignment that doesn't have maximum points.");
 
@@ -125,14 +133,23 @@ namespace GradeSyncApi.Services.OneRoster
 
             // add category if it is specified
             var categoryDict = assignmentEntity.DeserializeCategoryDict();
-            if (categoryDict is not null)
+            if (categoryDict is not null && categoryDict.TryGetValue(oneRosterConnectionId, out CategoryMapping value) && value.CatId != "none")
             {
-                if (categoryDict.TryGetValue(oneRosterConnectionId, out CategoryMapping value))
+                string passedCatId = value.CatId;
+                // find the matching category for the classExternalId by matching based on title
+                var selectedCat = allCategories?.Find(c => c.Id == value.CatId);
+                if (selectedCat != null) {
+                    var matchedCategory = allCategories?.Find(c => c.Title == selectedCat.Title && c.Metadata?.ClassSourcedId == classExternalId);
+                    if (matchedCategory != null) passedCatId = matchedCategory.Id;
+                }
+                lineItem.Category = new IdTypeMapping(passedCatId, "category");
+            } else
+            {
+                if (connectionEntity.AllowNoneLineItemCategory 
+                    && connectionEntity.DefaultLineItemCategory is not null 
+                    && connectionEntity.DefaultLineItemCategory != "none")
                 {
-                    if (value.CatId != "none")
-                    {
-                        lineItem.Category = new IdTypeMapping(value.CatId, "category");
-                    }
+                    lineItem.Category = new IdTypeMapping(connectionEntity.DefaultLineItemCategory, "category");
                 }
             }
 

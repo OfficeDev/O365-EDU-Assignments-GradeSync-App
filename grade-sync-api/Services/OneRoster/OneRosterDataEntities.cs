@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
 using Newtonsoft.Json;
 
 namespace GradeSyncApi.Services.OneRoster
@@ -150,6 +151,8 @@ namespace GradeSyncApi.Services.OneRoster
 
     public class Category
     {
+        public Category() { }
+
         [JsonProperty("sourcedId")]
         public string Id { get; set; }
 
@@ -158,12 +161,21 @@ namespace GradeSyncApi.Services.OneRoster
 
         [JsonProperty("title")]
         public string Title { get; set; }
+
+        [JsonProperty("metadata")]
+        public Metadata? Metadata { get; set; }
     }
 
     public class TokenWrapper
     {
         [JsonProperty("access_token")]
         public string AccessToken { get; set; }
+    }
+
+    public class Metadata
+    {
+        [JsonProperty("classId")]
+        public string? ClassSourcedId { get; set; }
     }
 
     public class IdTypeMapping

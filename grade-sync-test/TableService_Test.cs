@@ -1,9 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 using GradeSyncApi.Services.Storage;
+using Azure.Data.Tables;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System;
 using Moq;
+using Xunit;
+using GradeSyncApi.Services.OneRoster;
 
 namespace GradeSyncTest;
 
@@ -18,7 +22,10 @@ public class TableService_Test
 
         var mock = new Mock<ILogger<TableStorageService>>();
         var logger = mock.Object;
-        var tableStorageService = new TableStorageService(config, logger);
+
+        var oneRosterMock = new Mock<IOneRosterService>();
+        var oneRoster = oneRosterMock.Object;
+        var tableStorageService = new TableStorageService(config, logger, oneRoster);
         return tableStorageService;
     }
 

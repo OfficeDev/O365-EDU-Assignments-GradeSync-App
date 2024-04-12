@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 using Azure.Data.Tables;
+using System;
 using Microsoft.Extensions.Configuration;
 using GradeSyncApi.Services.Storage;
 using GradeSyncApi.Services.OneRoster;
@@ -16,6 +17,7 @@ namespace grade_sync_worker.Helpers
             var taskList = new List<Task>();
             if (jobEntity.AssignmentEntities is not null)
             {
+                var allCategories = await oneRosterService.GetActiveCategories();
                 foreach (var assignment in jobEntity.AssignmentEntities)
                 {
                     assignment.LineItemFailedInMemory = false;
@@ -33,7 +35,8 @@ namespace grade_sync_worker.Helpers
                                     subclassExternalId,
                                     oneRosterService,
                                     jobEntity.OneRosterConnectionId,
-                                    jobEntity.ConnectionEntity.IsGroupEnabled
+                                    jobEntity.ConnectionEntity,
+                                    allCategories
                                 );
                                 taskList.Add(task);
                             }
@@ -46,7 +49,8 @@ namespace grade_sync_worker.Helpers
                             jobEntity.ClassExternalId,
                             oneRosterService,
                             jobEntity.OneRosterConnectionId,
-                            jobEntity.ConnectionEntity.IsGroupEnabled
+                            jobEntity.ConnectionEntity,
+                            allCategories
                         );
                         taskList.Add(task);
                     }
@@ -137,7 +141,8 @@ namespace grade_sync_worker.Helpers
             string classExternalId,
             IOneRosterService oneRosterService,
             string oneRosterConnectionId,
-            bool isGroupEnabledConnection)
+            OneRosterConnectionEntity connectionEntity,
+            List<Category>? allCategories)
         {
             try
             {
@@ -147,7 +152,7 @@ namespace grade_sync_worker.Helpers
                 }
 
                 var sourcedId = "";
-                if (isGroupEnabledConnection)
+                if (connectionEntity.IsGroupEnabled)
                 {
                     // if the OneRoster connection uses /classGroups, we need to make a composite assignment key
                     // because the same lineItem needs to be created in multiple classes, and the id must be different
@@ -158,8 +163,8 @@ namespace grade_sync_worker.Helpers
                 var exists = assignmentEntity.ForceSync ? false : await oneRosterService.OneRosterResourceExists(sourcedId, OneRosterResourceType.LineItem);
                 if (!exists)
                 {
-                    var createdLineItem = await oneRosterService.CreateLineItem(sourcedId, assignmentEntity, classExternalId, oneRosterConnectionId);
-                    await assignmentEntity.PersistCreatedCategory(oneRosterConnectionId, createdLineItem);
+                    var createdLineItem = await oneRosterService.CreateLineItem(sourcedId, assignmentEntity, classExternalId, oneRosterConnectionId, allCategories, connectionEntity);
+                    await assignmentEntity.PersistCreatedCategory(oneRosterConnectionId, createdLineItem, allCategories);
                 } 
             }
             catch (Exception e)

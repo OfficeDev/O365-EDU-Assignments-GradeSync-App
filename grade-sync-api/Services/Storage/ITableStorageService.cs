@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
 using Azure.Data.Tables;
 using GradeSyncApi.Helpers;
+using GradeSyncApi.Services.OneRoster;
 
 namespace GradeSyncApi.Services.Storage
 {
@@ -10,7 +12,7 @@ namespace GradeSyncApi.Services.Storage
         // Assignment entity methods
         Task<List<AssignmentEntity>?> GetAssignmentsByClassId(string classId);
         Task BatchTransactAssignmentsAsync(List<TableTransactionAction> assignmentActions);
-        Task BatchUpdateAssignmentsForJobAsync(string classId, GradeSyncStatus status, JobPayloadWrapper payloadWrapper, string jobId, string oneRosterConnectionId);
+        Task BatchUpdateAssignmentsForJobAsync(string classId, GradeSyncStatus status, JobPayloadWrapper payloadWrapper, string jobId, string oneRosterConnectionId, List<Category>? allCategories);
         Task<List<AssignmentEntity>?> GetAssignmentsFromIdList(string classId, List<string> assignmentIdList, bool forceSync);
 
         // GradeSync job entity methods
@@ -29,4 +31,3 @@ namespace GradeSyncApi.Services.Storage
         Task<UserSettingsEntity?> GetUserSettingsEntityAsync(string tid, string userId);
     }
 }
-

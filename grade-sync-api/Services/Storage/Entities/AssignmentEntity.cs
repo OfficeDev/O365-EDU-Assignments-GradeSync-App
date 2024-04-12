@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
 using System.Runtime.Serialization;
 using GradeSyncApi.Services.OneRoster;
 using Newtonsoft.Json;
@@ -65,7 +66,7 @@ namespace GradeSyncApi.Services.Storage
             return JsonConvert.DeserializeObject<Dictionary<string, CategoryMapping>>(StringifiedCategoryDict);
         }
 
-        public void AddCategoryMapping(string oneRosterConnectionId, string categoryId)
+        public void AddCategoryMapping(string oneRosterConnectionId, string categoryId, string? categoryTitle)
         {
             var categoryDict = DeserializeCategoryDict();
             if (categoryDict is null) categoryDict = new Dictionary<string, CategoryMapping>();
@@ -76,19 +77,21 @@ namespace GradeSyncApi.Services.Storage
                 if (!value.LineItemSynced)
                 {
                     value.CatId = categoryId;
+                    value.CatTitle = categoryTitle is null ? "" : categoryTitle;
                     categoryDict[oneRosterConnectionId] = value;
                 }
             } else
             {
-                categoryDict[oneRosterConnectionId] = new CategoryMapping(categoryId, false);
+                categoryDict[oneRosterConnectionId] = new CategoryMapping(categoryId, false, categoryTitle);
             }
             
             StringifiedCategoryDict = JsonConvert.SerializeObject(categoryDict);
         }
 
-        public async Task PersistCreatedCategory(string oneRosterConnectionId, LineItem? lineItem)
+        public async Task PersistCreatedCategory(string oneRosterConnectionId, LineItem? lineItem, List<Category>? allCategories)
         {
             string? createdCatId = lineItem?.Category?.Id;
+            var createdCategory = allCategories?.Find(c => c.Id == createdCatId);
             await _catPersistLock.WaitAsync();
 
             try
@@ -98,7 +101,7 @@ namespace GradeSyncApi.Services.Storage
                 if (createdCatId is not null && categoryDict is null)
                 {
                     categoryDict = new Dictionary<string, CategoryMapping>();
-                    categoryDict[oneRosterConnectionId] = new CategoryMapping(createdCatId, true);
+                    categoryDict[oneRosterConnectionId] = new CategoryMapping(createdCatId, true, createdCategory?.Title);
                 }
                 else if (categoryDict is not null)
                 {
@@ -110,11 +113,12 @@ namespace GradeSyncApi.Services.Storage
                         // in most cases this will match the catId the user selected and be a no-op, but sometimes
                         // it may overwrite if the lineItem gets created with a default catId that is different than the one the user specified
                         value.CatId = createdCatId;
+                        value.CatTitle = createdCategory is null ? "" : createdCategory.Title;
                         categoryDict[oneRosterConnectionId] = value;
                     }
                     else
                     {
-                        categoryDict[oneRosterConnectionId] = new CategoryMapping(createdCatId, true);
+                        categoryDict[oneRosterConnectionId] = new CategoryMapping(createdCatId, true, createdCategory?.Title);
                     }
                 }
 
@@ -220,14 +224,18 @@ namespace GradeSyncApi.Services.Storage
 
     public class CategoryMapping
     {
-        public CategoryMapping(string catId, bool synced)
+        public CategoryMapping(string catId, bool synced, string? catTitle)
         {
             CatId = catId;
             LineItemSynced = synced;
+            CatTitle = catTitle is null ? "" : catTitle;
         }
 
         [JsonProperty("catId")]
         public string CatId { get; set; }
+
+        [JsonProperty("catTitle")]
+        public string CatTitle { get; set; }
 
         [JsonProperty("lineItemSynced")]
         public bool LineItemSynced { get; set; }

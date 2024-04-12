@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 import React, {
     useContext,
     useEffect,
@@ -26,7 +28,10 @@ const Connections = (props) => {
             clientId: "",
             clientSecret: "",
             editConnectionId: "",
-            isGroupEnabled: false
+            isGroupEnabled: false,
+            allowNoneLineItemCategory: false,
+            defaultLineItemCategory: null,
+            categories: null
         },
         formComplete: false,
         formError: false,
@@ -57,7 +62,10 @@ const Connections = (props) => {
                 clientId: "",
                 clientSecret: "",
                 editConnectionId: "",
-                isGroupEnabled: false
+                isGroupEnabled: false,
+                allowNoneLineItemCategory: false,
+                defaultLineItemCategory: null,
+                categories: null
             };
             stateCopy.formError = false;
             stateCopy.formErrorMessage = "";
@@ -72,6 +80,14 @@ const Connections = (props) => {
             if (action.dto) {
                 stateCopy.formState.displayName = action.dto.displayName;
                 stateCopy.formState.editConnectionId = action.dto.connectionId;
+                stateCopy.formState.isGroupEnabled = action.dto.isGroupEnabled;
+                stateCopy.formState.allowNoneLineItemCategory = action.dto.allowNoneLineItemCategory;
+                stateCopy.formState.defaultLineItemCategory = action.dto.defaultLineItemCategory;
+                stateCopy.formState.categories = action.categories;
+
+                stateCopy.formState.baseUrl = action.detailsDto.oneRosterBaseUrl;
+                stateCopy.formState.tokenUrl = action.detailsDto.oAuth2TokenUrl;
+                stateCopy.formState.clientId = action.detailsDto.clientId;
             }
         }
 
@@ -90,7 +106,13 @@ const Connections = (props) => {
 
             let allFieldsHaveValue = true;
             for (const [key, value] of Object.entries(stateCopy.formState)) {
-                if (value === "" && key !== "editConnectionId" && key !== "isGroupEnabled") {
+                if (value === ""
+                    && key !== "editConnectionId"
+                    && key !== "isGroupEnabled"
+                    && key !== "allowNoneLineItemCategory"
+                    && key !== "defaultLineItemCategory"
+                    && key !== "categories"
+                ) {
                     allFieldsHaveValue = false;
                     break;
                 }
@@ -99,7 +121,11 @@ const Connections = (props) => {
             stateCopy.formComplete = allFieldsHaveValue;
         }
 
-        if (action.type === "radioChange") {
+        if (action.type === "changeDefaultCat") {
+            stateCopy.formState.defaultLineItemCategory = action.catId;
+        }
+
+        if (action.type === "checkboxChange") {
             stateCopy.formState[action.field] = !stateCopy.formState[action.field];
         }
 
@@ -150,7 +176,7 @@ const Connections = (props) => {
         if (action.type === "spliceConnection") {
             const newConnections = [];
             for (const connection of stateCopy.connections) {
-                if (connection.connectionId != action.id) newConnections.push(connection);
+                if (connection.connectionId !== action.id) newConnections.push(connection);
             }
 
             stateCopy.connections = newConnections;
@@ -182,8 +208,9 @@ const Connections = (props) => {
         const token = await authentication.getAuthToken();
 
         try {
-            dispatch({ type: "trimFormWhitespace"});
-            const res = await ApiService.apiPostRequest(token, "/api/create-one-roster-connection", dataState.formState);
+            dispatch({ type: "trimFormWhitespace" });
+            const { categories, ...payload } = dataState.formState;
+            const res = await ApiService.apiPostRequest(token, "/api/create-one-roster-connection", payload);
             const toastText = `Successfully ${dataState.formState.editConnectionId ? "edited" : "created"} API connection: ${dataState.formState.displayName}`;
             dispatch({ type: "modifyToast", showToast: true, text: toastText });
 
@@ -225,6 +252,13 @@ const Connections = (props) => {
         dispatch({ type: "modifyToast", showToast: true, text: "Successfully deleted API connection." }); 
     }
 
+    const onEditOpen = async (connectionDto) => {
+        const token = await authentication.getAuthToken();
+        const res = await ApiService.apiGetRequest(token, `/api/get-all-categories/${connectionDto.connectionId}`);
+        const connectionRes = await ApiService.apiGetRequest(token, `/api/get-connection-details/${connectionDto.connectionId}`);
+        dispatch({ type: "showModal", dto: connectionDto, categories: res.data, detailsDto: connectionRes.data });
+    }
+
     useEffect(() => {
         if (tabContext) {
             getConnections();
@@ -252,8 +286,8 @@ const Connections = (props) => {
         dispatch({ type: "fieldChange", field: fieldName, val: evt.target.value })
     }
 
-    const onRadioChange = (fieldName) => {
-        dispatch({ type: "radioChange", field: fieldName})
+    const onCheckboxChange = (fieldName) => {
+        dispatch({ type: "checkboxChange", field: fieldName})
     }
 
     const getTextInput = (stateReference, fieldName, placeholder, title, inputType) => {
@@ -272,17 +306,39 @@ const Connections = (props) => {
         );
     }
 
-    const getRadioInput = (stateReference, fieldName, label) => {
+    const getCheckboxInput = (stateReference, fieldName, label) => {
         return (
             <div className="form-check mb-3">
                 <label className="form-check-label" for={fieldName}>{label}</label>
                 <input 
                     className="form-check-input"
                     id={fieldName}
-                    type="radio" 
+                    type="checkbox" 
                     checked={stateReference}
-                    onChange={e => onRadioChange(fieldName)}
+                    onChange={e => onCheckboxChange(fieldName)}
                 />     
+            </div>
+        );
+    }
+
+    const getCategoriesSelect = (fieldName, label) => {
+        return (
+            <div className="form-check mb-3">
+                <label className="form-check-label" for={fieldName}>{label}</label>
+                <select
+                    className="form-select"
+                    id={fieldName}
+                    value={dataState.formState.defaultLineItemCategory}
+                    onChange={e => dispatch({ type: "changeDefaultCat", catId: e.target.value })}
+                >
+                    {
+                        dataState.formState.categories.map((category) => {
+                            return (
+                                <option value={category.id}>{category.title} (ID: {category.id})</option>
+                            );
+                        })
+                    }
+                </select>
             </div>
         );
     }
@@ -326,7 +382,15 @@ const Connections = (props) => {
                     { getTextInput(dataState.formState.tokenUrl, "tokenUrl", "Enter OneRoster token URL", "OneRoster Token URL", "text") }
                     { getTextInput(dataState.formState.clientId, "clientId", "Enter OneRoster Client ID", "OneRoster Client ID", "text") }
                     { getTextInput(dataState.formState.clientSecret, "clientSecret", "Enter OneRoster Client Secret", "OneRoster Client Secret", "password") }
-                    { getRadioInput(dataState.formState.isGroupEnabled, "isGroupEnabled", "Group-enabled") }
+                    { getCheckboxInput(dataState.formState.isGroupEnabled, "isGroupEnabled", "Group-enabled") }
+                    { getCheckboxInput(dataState.formState.allowNoneLineItemCategory, "allowNoneLineItemCategory", "Allow 'None' assignment category") }
+
+                    {
+                        dataState.formState.allowNoneLineItemCategory && dataState.formState.categories && dataState.formState.editConnectionId ?
+                            getCategoriesSelect("categories", "Default line-item category")
+                            : null
+                    }
+
                     { getFormErrorMessage() }
                 </ModalBody>
                 <ModalFooter>
@@ -405,7 +469,7 @@ const Connections = (props) => {
                     {
                         connectionDto.canEdit ?
                             <span className="float-end my-auto me-2">
-                                <button className="btn btn-outline-primary" onClick={() => dispatch({type: "showModal", dto: connectionDto })}>Edit</button>
+                                <button className="btn btn-outline-primary" onClick={() => onEditOpen(connectionDto)}>Edit</button>
                             </span>
                             : null
                     }
