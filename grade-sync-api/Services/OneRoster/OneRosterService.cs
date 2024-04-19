@@ -196,11 +196,19 @@ namespace GradeSyncApi.Services.OneRoster
         {
             var url = $"{_apiCreds!.OneRosterBaseUrl}/categories";
             var token = await GetOrRefreshAccessToken();
-            var paginated = await OneRosterHttpClient.PaginatedGetRequest<CategoryWrapper>(_httpClient!, url, token, _defaultPageSize);
-            var combined = paginated.FirstOrDefault();
-            combined!.CombinePages(paginated);
+            var req = await OneRosterHttpClient.GetRequest(_httpClient!, url, token);
+            var res = req.Item2;
 
-            return combined.Categories.Where(category => category.Status == "active").ToList();
+            try
+            {
+                res.EnsureSuccessStatusCode();
+                var wrapper = JsonConvert.DeserializeObject<CategoryWrapper>(req.Item1);
+                return wrapper!.Categories.Where(category => category.Status == "active").ToList();
+            }
+            catch (Exception)
+            {
+                throw new ApplicationException($"Error fetching OneRoster categories.");
+            }
         }
 
         public async Task<List<Enrollment>> GetEnrollmentsByClass(string classSourcedId)
