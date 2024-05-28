@@ -30,6 +30,7 @@ const Connections = (props) => {
             editConnectionId: "",
             isGroupEnabled: false,
             allowNoneLineItemCategory: false,
+            autoSetGradingPeriod: false,
             defaultLineItemCategory: null,
             categories: null
         },
@@ -64,6 +65,7 @@ const Connections = (props) => {
                 editConnectionId: "",
                 isGroupEnabled: false,
                 allowNoneLineItemCategory: false,
+                autoSetGradingPeriod: false,
                 defaultLineItemCategory: null,
                 categories: null
             };
@@ -83,6 +85,7 @@ const Connections = (props) => {
                 stateCopy.formState.isGroupEnabled = action.dto.isGroupEnabled;
                 stateCopy.formState.allowNoneLineItemCategory = action.dto.allowNoneLineItemCategory;
                 stateCopy.formState.defaultLineItemCategory = action.dto.defaultLineItemCategory;
+                stateCopy.formState.autoSetGradingPeriod = action.dto.autoSetGradingPeriod;
                 stateCopy.formState.categories = action.categories;
 
                 stateCopy.formState.baseUrl = action.detailsDto.oneRosterBaseUrl;
@@ -111,6 +114,7 @@ const Connections = (props) => {
                     && key !== "isGroupEnabled"
                     && key !== "allowNoneLineItemCategory"
                     && key !== "defaultLineItemCategory"
+                    && key !== "autoSetGradingPeriod"
                     && key !== "categories"
                 ) {
                     allFieldsHaveValue = false;
@@ -384,6 +388,7 @@ const Connections = (props) => {
                     { getTextInput(dataState.formState.clientSecret, "clientSecret", "Enter OneRoster Client Secret", "OneRoster Client Secret", "password") }
                     { getCheckboxInput(dataState.formState.isGroupEnabled, "isGroupEnabled", "Group-enabled") }
                     { getCheckboxInput(dataState.formState.allowNoneLineItemCategory, "allowNoneLineItemCategory", "Allow 'None' assignment category") }
+                    { getCheckboxInput(dataState.formState.autoSetGradingPeriod, "autoSetGradingPeriod", "Auto-set line item grading period") }
 
                     {
                         dataState.formState.allowNoneLineItemCategory && dataState.formState.categories && dataState.formState.editConnectionId ?

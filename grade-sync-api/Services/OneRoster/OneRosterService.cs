@@ -117,6 +117,9 @@ namespace GradeSyncApi.Services.OneRoster
         {
             if (assignmentEntity.MaxPoints is null) throw new ApplicationException("Can't create line item assignment that doesn't have maximum points.");
 
+            IdTypeMapping? gradingPeriod = new IdTypeMapping(_currentGradingPeriodId!, "academicSession");
+            if (connectionEntity.AutoSetGradingPeriod) gradingPeriod = null;
+
             var lineItem = new LineItem
             {
                 Id = sourcedId,
@@ -127,8 +130,7 @@ namespace GradeSyncApi.Services.OneRoster
                 ResultValueMin = 0.0,
                 ResultValueMax = (double)assignmentEntity.MaxPoints,
                 Class = new IdTypeMapping(classExternalId, "class"),
-                // add grading period
-                GradingPeriod = new IdTypeMapping(_currentGradingPeriodId!, "academicSession")
+                GradingPeriod = gradingPeriod
             };
 
             // add category if it is specified
@@ -215,55 +217,59 @@ namespace GradeSyncApi.Services.OneRoster
         {
             var url = $"{_apiCreds!.OneRosterBaseUrl}/enrollments";
             var token = await GetOrRefreshAccessToken();
-            var paginated = await OneRosterHttpClient
-                .PaginatedGetRequest<EnrollmentWrapper>(
-                    _httpClient!,
-                    url,
-                    token,
-                    _defaultPageSize,
-                    new Tuple<string, string>("classSourcedId", classSourcedId)
-                );
+            var req = await OneRosterHttpClient.GetRequestFilter(_httpClient!, url, token, new Tuple<string, string>("classSourcedId", classSourcedId));
+            var res = req.Item2;
 
-            var combined = paginated.FirstOrDefault();
-            combined!.CombinePages(paginated);
-
-            return combined.Enrollments.Where(enrollment => enrollment.Status == "active").ToList();
+            try
+            {
+                res.EnsureSuccessStatusCode();
+                var wrapper = JsonConvert.DeserializeObject<EnrollmentWrapper>(req.Item1);
+                return wrapper!.Enrollments.Where(enrollment => enrollment.Status == "active").ToList();
+            }
+            catch (Exception)
+            {
+                throw new ApplicationException($"Error fetching OneRoster enrollments for class with sourcedId: {classSourcedId}.");
+            }
         }
 
         public async Task<List<OneRosterUser>> GetStudentUsersByClass(string classSourcedId)
         {
             var url = $"{_apiCreds!.OneRosterBaseUrl}/classes/{classSourcedId}/students";
             var token = await GetOrRefreshAccessToken();
-            var paginated = await OneRosterHttpClient
-                .PaginatedGetRequest<UserWrapper>(
-                    _httpClient!,
-                    url,
-                    token,
-                    _defaultPageSize
-                );
+            var req = await OneRosterHttpClient.GetRequest(_httpClient!, url, token);
+            var res = req.Item2;
 
-            var combined = paginated.FirstOrDefault();
-            combined!.CombinePages(paginated);
-            return combined.Users;
+            try
+            {
+                res.EnsureSuccessStatusCode();
+                var wrapper = JsonConvert.DeserializeObject<UserWrapper>(req.Item1);
+                return wrapper!.Users;
+            }
+            catch (Exception)
+            {
+                throw new ApplicationException($"Error fetching OneRoster students for class.");
+            }
         }
 
         public async Task<List<OneRosterUser>> GetTeachersMatchedByEmail(string? adUserEmail = null)
         {
             var url = $"{_apiCreds!.OneRosterBaseUrl}/teachers";
             var token = await GetOrRefreshAccessToken();
-            var paginated = await OneRosterHttpClient
-                .PaginatedGetRequest<UserWrapper>(
-                    _httpClient!,
-                    url,
-                    token,
-                    _defaultPageSize
-                );
+            var req = await OneRosterHttpClient.GetRequest(_httpClient!, url, token);
+            var res = req.Item2;
 
-            var combined = paginated.FirstOrDefault();
-            combined!.CombinePages(paginated);
+            try
+            {
+                res.EnsureSuccessStatusCode();
+                var wrapper = JsonConvert.DeserializeObject<UserWrapper>(req.Item1);
 
-            if (adUserEmail is null) return combined.Users; // return all teachers if no Active Directory email was specified
-            return combined.Users.Where(user => user.Username == adUserEmail || user.Email == adUserEmail).ToList();
+                if (adUserEmail is null) return wrapper!.Users; // return all teachers if no Active Directory email was specified
+                return wrapper!.Users.Where(user => user.Username == adUserEmail || user.Email == adUserEmail).ToList();
+            }
+            catch (Exception)
+            {
+                throw new ApplicationException($"Error fetching OneRoster teachers.");
+            }
         }
 
         public async Task<ClassGroup> GetClassGroup(string classGroupSourcedId)
@@ -288,9 +294,9 @@ namespace GradeSyncApi.Services.OneRoster
 
         public async Task ValidateClassGroups()
         {
-            var url = $"{_apiCreds!.OneRosterBaseUrl}/classGroups?offset=0&limit=10";
+            var url = $"{_apiCreds!.OneRosterBaseUrl}/classGroups";
             var token = await GetOrRefreshAccessToken();
-            var getReq = await OneRosterHttpClient.GetRequest(_httpClient!, url, token);
+            var getReq = await OneRosterHttpClient.GetRequest(_httpClient!, url, token, 10);
             var res = getReq.Item2;
 
             Console.WriteLine(getReq.Item1);
@@ -317,17 +323,19 @@ namespace GradeSyncApi.Services.OneRoster
             }
             
             var token = await GetOrRefreshAccessToken();
-            var paginated = await OneRosterHttpClient
-                .PaginatedGetRequest<OneRosterClassWrapper>(
-                    _httpClient!,
-                    url,
-                    token,
-                    _defaultPageSize
-                );
+            var req = await OneRosterHttpClient.GetRequest(_httpClient!, url, token);
+            var res = req.Item2;
 
-            var combined = paginated.FirstOrDefault();
-            combined!.CombinePages(paginated);
-            return combined.Classes;
+            try
+            {
+                res.EnsureSuccessStatusCode();
+                var wrapper = JsonConvert.DeserializeObject<OneRosterClassWrapper>(req.Item1);
+                return wrapper!.Classes;
+            }
+            catch (Exception)
+            {
+                throw new ApplicationException($"Error fetching OneRoster classes.");
+            }
         }
 
         public async Task GetCurrentGradingPeriod()
@@ -336,32 +344,28 @@ namespace GradeSyncApi.Services.OneRoster
             {
                 var url = $"{_apiCreds!.OneRosterBaseUrl}/academicSessions";
                 var token = await GetOrRefreshAccessToken();
-                var paginated = await OneRosterHttpClient.PaginatedGetRequest<SessionWrapper>(_httpClient!, url, token, _defaultPageSize);
-                var combined = paginated.FirstOrDefault();
-                combined!.CombinePages(paginated);
+                var req = await OneRosterHttpClient.GetRequestFilter(_httpClient!, url, token, new Tuple<string, string>("type", "gradingPeriod"));
+                var wrapper = JsonConvert.DeserializeObject<SessionWrapper>(req.Item1);
 
                 var timeNow = DateTime.UtcNow;
                 DateTime maxDate = DateTime.MinValue;
                 string maxDateId = "";
-                foreach (var session in combined.Sessions)
+                foreach (var session in wrapper!.Sessions)
                 {
-                    if (session.Type == "gradingPeriod")
+                    session.StartTime = DateTime.Parse(session.StartDate);
+                    session.EndTime = DateTime.Parse(session.EndDate);
+
+                    if (timeNow >= session.StartTime && timeNow <= session.EndTime)
                     {
-                        session.StartTime = DateTime.Parse(session.StartDate);
-                        session.EndTime = DateTime.Parse(session.EndDate);
-
-                        if (timeNow >= session.StartTime && timeNow <= session.EndTime)
-                        {
-                            _currentGradingPeriodId = session.Id;
-                            break;
-                        }
-
-                        if (session.EndTime >= maxDate)
-                        {
-                            maxDate = session.EndTime;
-                            maxDateId = session.Id;
-                        }
+                        _currentGradingPeriodId = session.Id;
+                        break;
                     }
+
+                    if (session.EndTime >= maxDate)
+                    {
+                        maxDate = session.EndTime;
+                        maxDateId = session.Id;
+                    } 
                 }
 
                 if (_currentGradingPeriodId is null)

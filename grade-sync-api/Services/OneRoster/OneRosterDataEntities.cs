@@ -234,7 +234,7 @@ namespace GradeSyncApi.Services.OneRoster
         public IdTypeMapping Class { get; set; }
 
         [JsonProperty("gradingPeriod")]
-        public IdTypeMapping GradingPeriod { get; set; }
+        public IdTypeMapping? GradingPeriod { get; set; }
 
         [JsonProperty("category")]
         public IdTypeMapping Category { get; set; }

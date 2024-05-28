@@ -41,6 +41,10 @@ namespace GradeSyncApi.Services.Storage
         [JsonPropertyName("allowNoneLineItemCategory")]
         public bool AllowNoneLineItemCategory { get; set; }
 
+        [JsonProperty("autoSetGradingPeriod")]
+        [JsonPropertyName("autoSetGradingPeriod")]
+        public bool AutoSetGradingPeriod { get; set; }
+
         [JsonProperty("defaultLineItemCategory")]
         [JsonPropertyName("defaultLineItemCategory")]
         public string? DefaultLineItemCategory {  get; set; }
@@ -62,6 +66,7 @@ namespace GradeSyncApi.Services.Storage
             IsGroupEnabled = entity.IsGroupEnabled;
             AllowNoneLineItemCategory = entity.AllowNoneLineItemCategory;
             DefaultLineItemCategory = entity.DefaultLineItemCategory;
+            AutoSetGradingPeriod = entity.AutoSetGradingPeriod;
             Categories = categories;
         }
 
@@ -82,6 +87,9 @@ namespace GradeSyncApi.Services.Storage
 
         [JsonProperty("allowNoneLineItemCategory")]
         public bool AllowNoneLineItemCategory { get; set; }
+
+        [JsonProperty("autoSetGradingPeriod")]
+        public bool AutoSetGradingPeriod { get; set; }
 
         [JsonProperty("defaultLineItemCategory")]
         public string? DefaultLineItemCategory { get; set; }
