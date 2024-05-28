@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
 using Newtonsoft.Json;
 
 namespace GradeSyncApi.Services.Graph.JsonEntities
@@ -7,6 +8,9 @@ namespace GradeSyncApi.Services.Graph.JsonEntities
     public class EducationUserWrapper
     {
         public EducationUserWrapper() {}
+
+        [JsonProperty("@odata.nextLink")]
+        public string? NextLink { get; set; }
 
         [JsonProperty("value")]
         public List<EducationUser> Users { get; set; }
@@ -70,4 +74,3 @@ namespace GradeSyncApi.Services.Graph.JsonEntities
         public string ExternalId { get; set; }
     }
 }
-

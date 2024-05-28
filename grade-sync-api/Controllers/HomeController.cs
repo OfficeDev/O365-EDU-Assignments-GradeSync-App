@@ -1,12 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-using System;
+﻿using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Identity.Web;
+using System.Text.Json;
 
 using GradeSyncApi.Helpers;
 using GradeSyncApi.Services.Graph;
@@ -24,17 +25,20 @@ namespace GradeSyncApi.Controllers
         private readonly IGraphService _graphService;
         private readonly IMessageQueueService _messageQueueService;
         private readonly IOneRosterService _oneRosterService;
+        private readonly ILogger<HomeController> _logger;
 
         public HomeController(
             ITableStorageService storageService,
             IGraphService graphService,
             IMessageQueueService messageQueueService,
-            IOneRosterService oneRoster)
+            IOneRosterService oneRoster,
+            ILogger<HomeController> logger)
         {
             _storageService = storageService;
             _graphService = graphService;
             _messageQueueService = messageQueueService;
             _oneRosterService = oneRoster;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -90,6 +94,8 @@ namespace GradeSyncApi.Controllers
                 
                 var teamsClass = await _graphService.GetClass(classId);
                 jobEntity.ClassExternalId = teamsClass!.ExternalId;
+                _logger.LogInformation($"Class SIS ID: {jobEntity.ClassExternalId}");
+
                 await _storageService.UpsertGradeSyncJobEntityAsync(jobEntity);
 
                 await _storageService.BatchUpdateAssignmentsForJobAsync(
@@ -357,6 +363,7 @@ namespace GradeSyncApi.Controllers
                 storedConnection.IsGroupEnabled = connectionEntity.IsGroupEnabled;
                 storedConnection.AllowNoneLineItemCategory = connectionEntity.AllowNoneLineItemCategory;
                 storedConnection.DefaultLineItemCategory = connectionEntity.DefaultLineItemCategory;
+                storedConnection.AutoSetGradingPeriod = connectionEntity.AutoSetGradingPeriod;
                 await _storageService.UpsertOneRosterConnectionEntityAsync(storedConnection);
             }
             else

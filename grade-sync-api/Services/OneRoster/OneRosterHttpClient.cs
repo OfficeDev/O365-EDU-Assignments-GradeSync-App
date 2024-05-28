@@ -1,7 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using GradeSyncApi.Services.Graph.JsonEntities;
 using Newtonsoft.Json;
 
 namespace GradeSyncApi.Services.OneRoster
@@ -43,9 +49,10 @@ namespace GradeSyncApi.Services.OneRoster
             return pageList;
         }
 
-        public static async Task<Tuple<string, HttpResponseMessage>> GetRequest(HttpClient client, string url, string token)
+        public static async Task<Tuple<string, HttpResponseMessage>> GetRequest(HttpClient client, string url, string token, int? limit = 7000)
         {
-            var req = new HttpRequestMessage(HttpMethod.Get, url);
+            var urlWithLimit = $"{url}?limit={limit}";
+            var req = new HttpRequestMessage(HttpMethod.Get, urlWithLimit);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var res = await client.SendAsync(req);
             var content = await res.Content.ReadAsStringAsync();
@@ -55,6 +62,31 @@ namespace GradeSyncApi.Services.OneRoster
                 res.EnsureSuccessStatusCode();
                 return new Tuple<string, HttpResponseMessage>(content, res);
             } catch (Exception)
+            {
+                throw new ApplicationException(content);
+            }
+        }
+
+        public static async Task<Tuple<string, HttpResponseMessage>> GetRequestFilter(HttpClient client, string url, string token, Tuple<string, string>? additionalFilter = null)
+        {
+            var reqUrl = $"{url}?limit=5000";
+            if (additionalFilter is not null)
+            {
+                var encodedFilter = Uri.EscapeDataString($"{additionalFilter.Item1}='{additionalFilter.Item2}'");
+                reqUrl = $"{reqUrl}&filter={encodedFilter}";
+            }
+
+            var req = new HttpRequestMessage(HttpMethod.Get, reqUrl);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var res = await client.SendAsync(req);
+            var content = await res.Content.ReadAsStringAsync();
+
+            try
+            {
+                res.EnsureSuccessStatusCode();
+                return new Tuple<string, HttpResponseMessage>(content, res);
+            }
+            catch (Exception)
             {
                 throw new ApplicationException(content);
             }

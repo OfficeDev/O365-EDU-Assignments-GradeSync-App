@@ -1,5 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+using System;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.Identity.Client;
@@ -283,6 +286,26 @@ namespace GradeSyncApi.Services.Graph
             return idSet;
         }
 
+        private static async Task<List<EducationUser>> GetPaginatedEduUsers(HttpClient client, string url)
+        {
+            var combinedUsers = new List<EducationUser>();
+            var res = await client!.GetAsync(url);
+            res.EnsureSuccessStatusCode();
+            var content = await res.Content.ReadAsStringAsync();
+            var wrapper = JsonConvert.DeserializeObject<EducationUserWrapper>(content);
+            combinedUsers.AddRange(wrapper!.Users);
+
+            while (wrapper!.NextLink is not null)
+            {
+                var page = await client!.GetAsync(wrapper!.NextLink);
+                var pageContent = await page.Content.ReadAsStringAsync();
+                wrapper = JsonConvert.DeserializeObject<EducationUserWrapper>(pageContent);
+                combinedUsers.AddRange(wrapper!.Users);
+            }
+
+            return combinedUsers;
+        }
+
         public async Task<List<EducationUser>?> GetStudentsByClass(string classId)
         {
             // we need to get both teachers and members for the class, and figure out who the students are based on the diff
@@ -292,15 +315,15 @@ namespace GradeSyncApi.Services.Graph
 
             try
             {
-                var studentWrapper = await GraphGetRequest<EducationUserWrapper>(_httpClient!, $"{_graphEduBaseUrl}/classes/{classId}/members");
-                var teacherWrapper = await GraphGetRequest<EducationUserWrapper>(_httpClient!, $"{_graphEduBaseUrl}/classes/{classId}/teachers");
+                var students = await GetPaginatedEduUsers(_httpClient!, $"{_graphEduBaseUrl}/classes/{classId}/members");
+                var teachers = await GetPaginatedEduUsers(_httpClient!, $"{_graphEduBaseUrl}/classes/{classId}/teachers");
                 var teacherIds = new HashSet<string>();
-                foreach (var teacher in teacherWrapper!.Users)
+                foreach (var teacher in teachers)
                 {
                     teacherIds.Add(teacher.UserId);
                 }
 
-                return studentWrapper!.Users.Where(user => !teacherIds.Contains(user.UserId)).ToList();
+                return students.Where(user => !teacherIds.Contains(user.UserId)).ToList();
             }
             catch (Exception e)
             {
@@ -330,12 +353,31 @@ namespace GradeSyncApi.Services.Graph
             return sisIdDict;
         }
 
+        private static async Task<List<AssignmentEntity>> GetPaginatedAssignments(HttpClient client, string url)
+        {
+            var combinedAssignments = new List<AssignmentEntity>();
+            var res = await client!.GetAsync(url);
+            res.EnsureSuccessStatusCode();
+            var content = await res.Content.ReadAsStringAsync();
+            var wrapper = JsonConvert.DeserializeObject<AssignmentsWrapper>(content);
+            combinedAssignments.AddRange(wrapper!.Assignments);
+
+            while (wrapper!.NextLink is not null)
+            {
+                var page = await client!.GetAsync(wrapper!.NextLink);
+                var pageContent = await page.Content.ReadAsStringAsync();
+                wrapper = JsonConvert.DeserializeObject<AssignmentsWrapper>(pageContent);
+                combinedAssignments.AddRange(wrapper!.Assignments);
+            }
+
+            return combinedAssignments;
+        }
+
         public async Task<List<AssignmentEntity>?> GetAssignmentsByClass(string classId) 
         {
             try
             {
-                var wrapper = await GraphGetRequest<AssignmentsWrapper>(_httpClient!, $"{_graphEduBetaUrl}/classes/{classId}/assignments/?$expand=*");
-                return wrapper!.Assignments;
+                return await GetPaginatedAssignments(_httpClient!, $"{_graphEduBetaUrl}/classes/{classId}/assignments/?$expand=*");
             } catch (Exception e)
             {
                 _logger.Log(Microsoft.Extensions.Logging.LogLevel.Error, e, "MS Graph error fetching EDU assignments.");
@@ -343,9 +385,29 @@ namespace GradeSyncApi.Services.Graph
             }
         }
 
+        private static async Task<List<SubmissionEntity>> GetPaginatedSubmissions(HttpClient client, string url)
+        {
+            var combinedSubmissions = new List<SubmissionEntity>();
+            var res = await client!.GetAsync(url);
+            res.EnsureSuccessStatusCode();
+            var content = await res.Content.ReadAsStringAsync();
+            var wrapper = JsonConvert.DeserializeObject<SubmissionsWrapper>(content);
+            combinedSubmissions.AddRange(wrapper!.Submissions);
+            
+            while (wrapper!.NextLink is not null)
+            {
+                var page = await client!.GetAsync(wrapper!.NextLink);
+                var pageContent = await page.Content.ReadAsStringAsync();
+                wrapper = JsonConvert.DeserializeObject<SubmissionsWrapper>(pageContent);
+                combinedSubmissions.AddRange(wrapper!.Submissions);
+            }
+
+            return combinedSubmissions;
+        }
+
         private async Task<AssignmentWithSubmissions> GetSubmissionsByAssignmentId(string classId, string assignmentId)
         {
-            var wrapper = await GraphGetRequest<SubmissionsWrapper>(
+            var submissions = await GetPaginatedSubmissions(
                 _httpClient!,
                 $"{_graphEduBaseUrl}/classes/{classId}/assignments/{assignmentId}/submissions?$expand=outcomes"
             );
@@ -353,7 +415,7 @@ namespace GradeSyncApi.Services.Graph
             var assignmentWithSubmissions = new AssignmentWithSubmissions
             {
                 AssignmentId = assignmentId,
-                Submissions = wrapper!.Submissions
+                Submissions = submissions
             };
             return assignmentWithSubmissions;
         }
@@ -376,7 +438,5 @@ namespace GradeSyncApi.Services.Graph
             }
             return submissionsDict;
         }
-
-
     }
 }
