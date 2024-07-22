@@ -1,4 +1,4 @@
-﻿# Grade Sync Teams app
+﻿# Grade Sync Teams app for Microsoft Teams Assgnments
 
 ## How to deploy
 
